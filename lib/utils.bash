@@ -40,10 +40,9 @@ download_release() {
 	local version filename url platform
 	version="$1"
 	filename="$2"
-	platform="$(get_platform)"
 
 	# TODO: Adapt the release URL convention for mockolo
-	url="$GH_REPO/releases/download/${version}/mockolo.${platform}.tar.gz"
+	url=$(release_url)
 
 	echo "* Downloading $TOOL_NAME release $version..."
 	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -81,5 +80,32 @@ get_platform() {
 		echo "ubuntu"
 	else
 		echo "macos"
+	fi
+}
+
+get_arch() {
+	local -r arch="$(uname -m)"
+	platform="$(get_platform)"
+	if [[ $platform == "ubuntu" ]]; then
+		echo "$arch"
+	else
+		echo "universal"
+	fi
+}
+
+version_compare() {
+	if [[ "$1" == "$(echo -e "$1\n$2" | sort -V | head -n1)" ]] && [[ "$1" != "$2" ]]; then
+		return 0 # $1 is less than $2
+	else
+		return 1
+	fi
+}
+
+release_url() {
+	platform="$(get_platform)"
+	if version_compare "$version" "2.1.1"; then
+		echo "$GH_REPO/releases/download/${version}/mockolo.${platform}.tar.gz"
+	else
+		echo "$GH_REPO/releases/download/${version}/mockolo.${platform}-$(get_arch).tar.gz"
 	fi
 }
